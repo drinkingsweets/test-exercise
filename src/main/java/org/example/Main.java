@@ -1,6 +1,5 @@
 package org.example;
 
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -22,10 +21,10 @@ public class Main {
         List<JsonNode> tickets = loadTickets(INPUT_FILE);
 
         Map<String, List<Integer>> carrierFlightTimes = extractFlightTimes(tickets, ORIGIN_CITY, DESTINATION_CITY);
-        Map<String, List<Integer>> carrierPrices = extractPrices(tickets, ORIGIN_CITY, DESTINATION_CITY);
+        List<Integer> allPrices = extractPrices(tickets, ORIGIN_CITY, DESTINATION_CITY);
 
         printMinFlightTimes(carrierFlightTimes);
-        printPriceDifference(carrierPrices);
+        printOverallPriceDifference(allPrices);
     }
 
     private static List<JsonNode> loadTickets(String filename) {
@@ -62,15 +61,14 @@ public class Main {
         return flightTimes;
     }
 
-    private static Map<String, List<Integer>> extractPrices(List<JsonNode> tickets, String origin, String destination) {
-        Map<String, List<Integer>> prices = new HashMap<>();
+    private static List<Integer> extractPrices(List<JsonNode> tickets, String origin, String destination) {
+        List<Integer> prices = new ArrayList<>();
         for (JsonNode ticket : tickets) {
             if (!matchesRoute(ticket, origin, destination)) {
                 continue;
             }
-            String carrier = ticket.path("carrier").asText();
             int price = ticket.path("price").asInt();
-            prices.computeIfAbsent(carrier, c -> new ArrayList<>()).add(price);
+            prices.add(price);
         }
         return prices;
     }
@@ -100,13 +98,10 @@ public class Main {
         });
     }
 
-    private static void printPriceDifference(Map<String, List<Integer>> prices) {
-        System.out.println("\nРазница между средней ценой и медианой:");
-        prices.forEach((carrier, priceList) -> {
-            double avg = priceList.stream().mapToInt(i -> i).average().orElse(0.0);
-            double med = calculateMedian(priceList);
-            System.out.printf("%s: %.2f%n", carrier, avg - med);
-        });
+    private static void printOverallPriceDifference(List<Integer> prices) {
+        double avg = prices.stream().mapToInt(i -> i).average().orElse(0.0);
+        double med = calculateMedian(prices);
+        System.out.printf("\nРазница между средней ценой и медианой: %.2f%n", avg - med);
     }
 
     private static double calculateMedian(List<Integer> values) {
